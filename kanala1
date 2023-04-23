@@ -1,0 +1,57 @@
+import os
+import sys
+import time
+import smbus
+from time import time, sleep
+from urllib.request import urlopen
+import sys
+
+def main():
+
+    WRITE_API = "0BAUZOHPFVQH0ZJ7" # Replace your ThingSpeak API key here
+    BASE_URL = "https://api.thingspeak.com/update?api_key={}".format(WRITE_API)
+    rotta = 0
+
+    # To Do list:
+    # Kiihtyvyysmittarin tulos x, y ja z -akselilla likahtaa tietyn verran ja datamittaus alkaa
+    # kunnes kiihtyvyysmittarin tulos vähenee tietyn akselien alle, datan keräys loppuu
+    # lämpötilan mittaus
+
+    from imusensor.MPU9250 import MPU9250
+    import bmp280 as BMP280
+
+    address = 0x68
+    bus = smbus.SMBus(1)
+    imu = MPU9250.MPU9250(bus, address)
+    #temp = BMP280.BMP280(bus, address)
+
+    imu.begin()
+
+    while True:
+        rotta = 0
+        imu.readSensor()
+        imu.computeOrientation()
+        #temp = temp.get_temperature()
+        #print(temp)
+
+        print ("Kiihtyvyysmittari x: {0:.2f} ; y : {1:.2f} ; z : {2:.2f}".format(imu.AccelVals[0], imu.AccelVals[1], imu.AccelVals[2]))
+        print ("Pyörimismäärä: x: {0:.2f} ; y : {1:.2f} ; z : {2:.2f}".format(imu.GyroVals[0], imu.GyroVals[1], imu.GyroVals[2]))
+
+        print ("Kallistuminen: {0:.2f} ; Keinua, Nyökätä : {1:.2f}".format(imu.roll, imu.pitch))
+     
+        
+            #  -70=0, -64.68=0, -80.15=0
+        if(-81 > imu.roll or imu.roll > -79):
+            print("Ruoka-astia Kallistuu")
+            rotta = 1
+            
+          # Alaraja-arvo  # Yläraja-arvo tämä on keinumista
+          # 15.50=0, 
+          # kehikon sisässä muutos pitch arvoon myrkytyksen aikana 
+        if(16 < imu.pitch or imu.pitch < 14):
+            print("Ruoka-astialla nokitaan, se Keinuu/Nyökkää")
+            rotta = 1
+        
+        
+        a = thingspeakHttp = BASE_URL + f"&field1={imu.roll}&field2={imu.pitch}&field3={imu.GyroVals[0]}&field4={rotta}"
+        print(a)
